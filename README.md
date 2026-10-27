@@ -149,6 +149,8 @@ résultats et les pourcentages de couverture, et les rapports détaillés sont
 publiés comme artefact téléchargeable. Avec GCC/gcov, les tests couvrent 100 %
 des lignes et des branches de `src/main.c` et `src/count.c` ; `make coverage`
 échoue si ce seuil n'est plus atteint.
+La CI exécute aussi les trois suites avec GCC et Clang pour vérifier la
+portabilité du code et des tests.
 
 ## Débogage
 

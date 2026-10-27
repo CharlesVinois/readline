@@ -409,6 +409,8 @@ branches sont distinctes : les rapports servent à repérer les chemins encore
 non exercés et ne remplacent pas la vérification des comportements. La suite
 actuelle atteint 100 % des lignes et des branches dans `src/main.c` et
 `src/count.c` avec GCC/gcov ; la cible échoue si ce seuil n'est plus atteint.
+La CI compile également le projet et exécute les trois catégories de tests avec
+GCC et Clang.
 
 ## Compilation séparée
 

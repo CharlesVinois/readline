@@ -8,6 +8,22 @@ permissions:
   contents: read
 
 jobs:
+  compiler-tests:
+    name: Tests (${{ matrix.compiler }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler: [gcc, clang]
+    steps:
+      - name: Check out repository and Unity submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run unit, functional, and integration tests
+        run: make clean test CC=${{ matrix.compiler }}
+
   sanitizers:
     runs-on: ubuntu-latest
     steps:
