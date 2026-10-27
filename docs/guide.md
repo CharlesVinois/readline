@@ -297,6 +297,22 @@ licence MIT est disponible dans ce sous-module. Pour le mettre à jour,
 déplacez le pointeur du sous-module vers le commit souhaité et validez ce
 changement dans le dépôt principal.
 
+## Mesurer la couverture
+
+La cible `coverage` recompile le programme et les tests avec `--coverage`, puis
+exécute les tests unitaires et fonctionnels sur ces binaires instrumentés :
+
+```sh
+make clean coverage
+```
+
+`gcov` utilise les compteurs collectés pendant ces exécutions pour produire
+les rapports de lignes et de branches pour les fichiers de `src/`. Les fichiers
+`.gcov` sont écrits dans `build/coverage/`. Dans GitHub Actions, ces rapports
+sont publiés comme artefact du workflow. Aucun seuil minimal n'est configuré :
+la couverture indique les parties exercées par les tests sans faire échouer le
+build sur un pourcentage choisi arbitrairement.
+
 ## Compilation séparée
 
 Un projet peut répartir son code dans plusieurs fichiers `.c`. Chaque fichier

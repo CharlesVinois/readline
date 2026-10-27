@@ -61,8 +61,16 @@ UTF-8 et les erreurs d'argument, de fichier ou d'encodage.
 Les tests unitaires utilisent Unity, référencé dans `vendor/unity/` par un
 commit précis.
 
-GitHub Actions exécute automatiquement ces tests à chaque push et à chaque
-pull request.
+Pour exécuter les tests avec l'instrumentation de couverture et générer un
+rapport de lignes et de branches :
+
+```sh
+make clean coverage
+```
+
+Les rapports détaillés sont générés sous `build/coverage/`. GitHub Actions
+effectue également ce calcul à chaque push et pull request, puis publie les
+rapports comme artefact du workflow.
 
 ## Débogage
 
