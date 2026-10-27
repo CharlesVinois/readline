@@ -76,7 +76,10 @@ ses dépendances.
 - `all` est la cible par défaut et construit l'exécutable normal.
 - `run` construit puis exécute le programme avec les arguments définis par
   `ARGS`.
-- `test` construit le programme et lance les tests shell.
+- `test` construit le programme et lance les tests unitaires et fonctionnels.
+- `$(TEST_TARGET)` compile Unity avec `src/count.c` et le framework sous
+  `vendor/unity/`. Si le sous-module n'est pas initialisé, `make` indique la
+  commande nécessaire.
 - `debug` construit une version destinée au débogage.
 - `clean` supprime les fichiers générés de `build/`.
 
@@ -276,6 +279,23 @@ fclose(file);
 
 Le mode `"r"` ouvre en lecture. `fgets`, `fprintf` et `fputc` sont d'autres
 fonctions standard de lecture et d'écriture.
+
+## Comprendre les tests
+
+`make test` exécute deux groupes de tests :
+
+- `tests/test_count.c` utilise Unity pour vérifier directement le module de
+  comptage : flux vide, compteurs, lignes sans saut final, UTF-8 valide,
+  invalide ou incomplet.
+- `tests/test_line_count.sh` vérifie l'exécutable complet, notamment les
+  options, l'aide et les erreurs. Il compare les sorties attendues puis nettoie
+  les fichiers temporaires.
+
+Unity est le framework C open source de ThrowTheSwitch, version 2.6.1. Le
+sous-module `vendor/unity/` pointe vers un commit précis de son dépôt ; la
+licence MIT est disponible dans ce sous-module. Pour le mettre à jour,
+déplacez le pointeur du sous-module vers le commit souhaité et validez ce
+changement dans le dépôt principal.
 
 ## Compilation séparée
 

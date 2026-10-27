@@ -8,6 +8,19 @@ caractères UTF-8 d'un fichier.
 - Un compilateur C (par exemple GCC ou Clang)
 - GNU Make
 
+Unity est fourni comme sous-module Git. Après un clonage classique, initialise
+le sous-module avec :
+
+```sh
+git submodule update --init --recursive
+```
+
+Ou clone le projet avec ses sous-modules :
+
+```sh
+git clone --recurse-submodules <URL-du-depot>
+```
+
 ## Compiler et analyser un fichier
 
 ```sh
@@ -45,6 +58,8 @@ make test
 
 Les tests couvrent les différentes opérations, leur combinaison, le comptage
 UTF-8 et les erreurs d'argument, de fichier ou d'encodage.
+Les tests unitaires utilisent Unity, référencé dans `vendor/unity/` par un
+commit précis.
 
 ## Débogage
 
