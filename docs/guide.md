@@ -1,9 +1,71 @@
 # Guide du projet
 
-Ce guide présente l'utilisation du programme, les règles de compilation et
-quelques bases du langage C.
+Ce guide présente la bibliothèque C, son exécutable de démonstration, les
+règles de compilation et quelques bases du langage.
 
-## Utiliser le programme
+## Utiliser la bibliothèque
+
+Construire la bibliothèque statique :
+
+```sh
+make library
+```
+
+Le résultat est `build/libreadline_stats.a` ; l'API publique est déclarée dans
+`include/readline_stats.h`. Exemple d'utilisation :
+
+```c
+#include <stdio.h>
+#include <readline_stats.h>
+
+FILE *file = fopen("fichier.txt", "rb");
+if (file == NULL) {
+    perror("fichier.txt");
+    return 1;
+}
+
+struct readline_counts counts;
+enum readline_status status =
+    readline_count_stream(file, READLINE_COUNT_ALL, &counts);
+fclose(file);
+if (status != READLINE_STATUS_OK) {
+    return 1;
+}
+```
+
+Compile et lie un client en incluant le répertoire d'en-têtes et la bibliothèque
+statique :
+
+```sh
+cc -std=c17 -Iinclude client.c build/libreadline_stats.a -o client
+```
+
+Installe l'archive et l'en-tête public sous `/usr/local` avec :
+
+```sh
+sudo make install
+```
+
+Le préfixe peut être ajusté, par exemple avec `make install PREFIX=/usr`.
+L'archive se nomme `libreadline_stats.a` pour éviter toute confusion avec la
+bibliothèque GNU Readline.
+
+`readline_count_stream` lit un flux fourni par l'appelant, sans le fermer.
+Passez une combinaison des options `READLINE_COUNT_LINES`,
+`READLINE_COUNT_WORDS`, `READLINE_COUNT_BYTES` et
+`READLINE_COUNT_CHARACTERS`, ou `READLINE_COUNT_ALL`. En cas de succès, les
+compteurs demandés sont renseignés et les autres restent à zéro. En cas
+d'erreur, les résultats ne sont pas modifiés ; le statut retourné identifie
+une option invalide, une erreur de lecture ou un UTF-8 invalide/incomplet.
+
+Un client complet est disponible dans `examples/count_file.c` :
+
+```sh
+make example
+./build/count_file chemin/vers/fichier.txt
+```
+
+## Utiliser le CLI de démonstration
 
 Afficher l'aide :
 
@@ -62,8 +124,9 @@ make test
 - `CFLAGS` regroupe les options de compilation : `-std=c17` sélectionne le
   standard C17, `-Wall -Wextra -Wpedantic` active les avertissements et `-O2`
   active les optimisations.
-- `SOURCES` désigne les fichiers C à compiler.
-- `TARGET` et `DEBUG_TARGET` donnent le chemin des exécutables générés.
+- `LIBRARY` désigne l'archive statique de la bibliothèque.
+- `HEADERS` désigne son en-tête public.
+- `TARGET` et `DEBUG_TARGET` donnent le chemin des exécutables CLI.
 
 La syntaxe `$(NOM)` est remplacée par la valeur de la variable `NOM`.
 
@@ -73,11 +136,15 @@ Une règle suit la forme `cible: dépendances`. `make` exécute les commandes
 indentées par une tabulation lorsque la cible est absente ou plus ancienne que
 ses dépendances.
 
-- `all` est la cible par défaut et construit l'exécutable normal.
+- `all` construit la bibliothèque et l'exécutable de démonstration.
+- `library` construit uniquement l'archive `build/libreadline_stats.a`.
+- `install` installe l'archive et son en-tête sous `$(PREFIX)`.
+- `example` compile le client démonstratif contre l'archive publique.
 - `run` construit puis exécute le programme avec les arguments définis par
   `ARGS`.
-- `test` construit le programme et lance les tests unitaires et fonctionnels.
-- `$(TEST_TARGET)` compile Unity avec `src/count.c` et le framework sous
+- `test` construit le CLI, le client et lance les tests unitaires et
+  fonctionnels.
+- `$(TEST_TARGET)` compile Unity et lie les tests à la bibliothèque statique sous
   `vendor/unity/`. Si le sous-module n'est pas initialisé, `make` indique la
   commande nécessaire.
 - `debug` construit une version destinée au débogage.
@@ -86,15 +153,18 @@ ses dépendances.
 `.PHONY` indique que ces noms représentent des commandes plutôt que des
 fichiers à générer.
 
-La commande de compilation normale ressemble à :
+Le CLI utilise l'archive statique. La construction correspond à ces étapes :
 
 ```sh
-cc -std=c17 -Wall -Wextra -Wpedantic -O2 src/main.c src/count.c -o build/readline
+cc -std=c17 -Wall -Wextra -Wpedantic -O2 -Iinclude -c src/count.c -o build/count.o
+ar rcs build/libreadline_stats.a build/count.o
+cc -std=c17 -Wall -Wextra -Wpedantic -O2 -Iinclude -c src/main.c -o build/main.o
+cc build/main.o build/libreadline_stats.a -o build/readline
 ```
 
-`mkdir -p build` crée le dossier de sortie s'il n'existe pas. L'option `-o`
-choisit le nom de l'exécutable. Le compilateur vérifie le code C, le traduit,
-puis édite les liens pour créer le programme.
+`ar` rassemble le fichier objet du module de comptage dans une archive
+statique. Les consommateurs incluent l'en-tête public puis lient cette archive
+à leur programme.
 
 ### Compilation et édition des liens
 
@@ -103,18 +173,20 @@ combine les fichiers objets et bibliothèques nécessaires pour produire un
 exécutable. La commande directe ci-dessus effectue les deux étapes ensemble.
 Pour les distinguer :
 
-```sh
-cc -std=c17 -Wall -Wextra -Wpedantic -c src/main.c -o build/main.o
-cc build/main.o -o build/readline
-```
-
-`-c` demande uniquement de produire le fichier objet. Une erreur de syntaxe se
+`-c` demande uniquement de produire un fichier objet. Une erreur de syntaxe se
 produit pendant la compilation ; une erreur `undefined reference` signale
 généralement une définition manquante pendant l'édition des liens.
 
 Pour suivre une erreur, cherchez le premier diagnostic qui indique un fichier
 et un numéro de ligne. L'erreur peut se trouver juste avant cette ligne. Les
 derniers messages de `make` résument souvent seulement l'échec de la commande.
+
+Pour compiler séparément un client de bibliothèque :
+
+```sh
+cc -std=c17 -Wall -Wextra -Wpedantic -Iinclude -c examples/count_file.c -o build/count_file.o
+cc build/count_file.o build/libreadline_stats.a -o build/count_file
+```
 
 ## Déboguer avec GDB
 
@@ -130,7 +202,7 @@ Construire la version de débogage et la lancer avec un fichier :
 
 ```sh
 make debug
-gdb --args ./build/readline-debug chemin/vers/fichier.txt
+gdb --args ./build/readline-debug -l chemin/vers/fichier.txt
 ```
 
 Cette version utilise `-g` pour inclure les informations de débogage et `-O0`

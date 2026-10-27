@@ -1,4 +1,4 @@
-#include "count.h"
+#include "readline_stats.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -115,22 +115,42 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    struct Counts counts;
-    enum CountStatus status = count_stream(file, options.characters, &counts);
-    if (status == COUNT_STATUS_READ_ERROR) {
+    unsigned int count_options = 0;
+    if (options.lines) {
+        count_options |= READLINE_COUNT_LINES;
+    }
+    if (options.words) {
+        count_options |= READLINE_COUNT_WORDS;
+    }
+    if (options.bytes) {
+        count_options |= READLINE_COUNT_BYTES;
+    }
+    if (options.characters) {
+        count_options |= READLINE_COUNT_CHARACTERS;
+    }
+
+    struct readline_counts counts;
+    enum readline_status status =
+        readline_count_stream(file, count_options, &counts);
+    if (status == READLINE_STATUS_READ_ERROR) {
         perror(filename);
         fclose(file);
         return 1;
     }
-    if (status == COUNT_STATUS_INVALID_UTF8) {
+    if (status == READLINE_STATUS_INVALID_UTF8) {
         fprintf(stderr, "%s : le fichier n'est pas un UTF-8 valide\n", filename);
         fclose(file);
         return 1;
     }
-    if (status == COUNT_STATUS_INCOMPLETE_UTF8) {
+    if (status == READLINE_STATUS_INCOMPLETE_UTF8) {
         fprintf(stderr,
                 "%s : le fichier se termine au milieu d'un caractère UTF-8\n",
                 filename);
+        fclose(file);
+        return 1;
+    }
+    if (status != READLINE_STATUS_OK) {
+        fprintf(stderr, "Impossible d'analyser le fichier : argument invalide\n");
         fclose(file);
         return 1;
     }

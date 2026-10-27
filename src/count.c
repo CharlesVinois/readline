@@ -1,4 +1,4 @@
-#include "count.h"
+#include "readline_stats.h"
 
 #include <ctype.h>
 
@@ -45,10 +45,17 @@ static int update_utf8_state(
     return 1;
 }
 
-enum CountStatus count_stream(FILE *file, int count_characters,
-                              struct Counts *counts)
+enum readline_status readline_count_stream(
+    FILE *stream,
+    unsigned int options,
+    struct readline_counts *counts)
 {
-    *counts = (struct Counts){0};
+    if (stream == NULL || counts == NULL || options == 0
+        || (options & ~READLINE_COUNT_ALL) != 0) {
+        return READLINE_STATUS_INVALID_ARGUMENT;
+    }
+
+    struct readline_counts result = {0};
     unsigned int utf8_remaining = 0;
     unsigned char utf8_next_min = 0x80;
     unsigned char utf8_next_max = 0xBF;
@@ -56,43 +63,48 @@ enum CountStatus count_stream(FILE *file, int count_characters,
     int last_byte = '\n';
     int byte;
 
-    while ((byte = fgetc(file)) != EOF) {
+    while ((byte = fgetc(stream)) != EOF) {
         unsigned char value = (unsigned char)byte;
 
-        counts->bytes++;
-        if (value == '\n') {
-            counts->lines++;
+        if ((options & READLINE_COUNT_BYTES) != 0) {
+            result.bytes++;
         }
-        if (isspace(value)) {
-            in_word = 0;
-        } else if (!in_word) {
-            counts->words++;
-            in_word = 1;
+        if ((options & READLINE_COUNT_LINES) != 0 && value == '\n') {
+            result.lines++;
+        }
+        if ((options & READLINE_COUNT_WORDS) != 0) {
+            if (isspace(value)) {
+                in_word = 0;
+            } else if (!in_word) {
+                result.words++;
+                in_word = 1;
+            }
         }
 
-        if (count_characters) {
+        if ((options & READLINE_COUNT_CHARACTERS) != 0) {
             int starts_character = (utf8_remaining == 0);
             if (!update_utf8_state(
                     value, &utf8_remaining, &utf8_next_min, &utf8_next_max)) {
-                return COUNT_STATUS_INVALID_UTF8;
+                return READLINE_STATUS_INVALID_UTF8;
             }
             if (starts_character) {
-                counts->characters++;
+                result.characters++;
             }
         }
 
         last_byte = value;
     }
 
-    if (ferror(file)) {
-        return COUNT_STATUS_READ_ERROR;
+    if (ferror(stream)) {
+        return READLINE_STATUS_READ_ERROR;
     }
-    if (count_characters && utf8_remaining != 0) {
-        return COUNT_STATUS_INCOMPLETE_UTF8;
+    if ((options & READLINE_COUNT_CHARACTERS) != 0 && utf8_remaining != 0) {
+        return READLINE_STATUS_INCOMPLETE_UTF8;
     }
-    if (last_byte != '\n') {
-        counts->lines++;
+    if ((options & READLINE_COUNT_LINES) != 0 && last_byte != '\n') {
+        result.lines++;
     }
 
-    return COUNT_STATUS_OK;
+    *counts = result;
+    return READLINE_STATUS_OK;
 }

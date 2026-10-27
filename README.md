@@ -2,8 +2,8 @@
 
 [![CI](https://github.com/CharlesVinois/readline/actions/workflows/ci.yml/badge.svg)](https://github.com/CharlesVinois/readline/actions/workflows/ci.yml)
 
-Petit programme C17 pour compter les lignes, les mots, les octets et les
-caractères UTF-8 d'un fichier.
+Bibliothèque C17 pour compter les lignes, les mots, les octets et les caractères
+UTF-8 d'un flux, avec un exécutable CLI de démonstration.
 
 ## Prérequis
 
@@ -23,7 +23,51 @@ Ou clone le projet avec ses sous-modules :
 git clone --recurse-submodules <URL-du-depot>
 ```
 
-## Compiler et analyser un fichier
+## Construire la bibliothèque
+
+```sh
+make library
+```
+
+Cela produit la bibliothèque statique `build/libreadline_stats.a` et l'en-tête
+public `include/readline_stats.h`. Un client C peut utiliser l'API ainsi :
+
+```c
+#include <stdio.h>
+#include <readline_stats.h>
+
+FILE *file = fopen("fichier.txt", "rb");
+if (file != NULL) {
+    struct readline_counts counts;
+    enum readline_status status =
+        readline_count_stream(file, READLINE_COUNT_ALL, &counts);
+    fclose(file);
+}
+```
+
+Compile et lie le client avec la bibliothèque :
+
+```sh
+cc -std=c17 -Iinclude client.c build/libreadline_stats.a -o client
+```
+
+Pour installer l'archive et l'en-tête sous `/usr/local` :
+
+```sh
+sudo make install
+```
+
+Le préfixe peut être personnalisé avec `make install PREFIX=/usr`.
+Le nom `libreadline_stats` évite une collision avec la bibliothèque GNU
+Readline, qui porte déjà le nom `libreadline`.
+
+L'API lit un `FILE *` ouvert en mode binaire. L'appelant reste propriétaire du
+flux et doit le fermer. Les options `READLINE_COUNT_LINES`, `READLINE_COUNT_WORDS`,
+`READLINE_COUNT_BYTES` et `READLINE_COUNT_CHARACTERS` permettent de choisir les
+compteurs ; `READLINE_COUNT_ALL` les active tous. Le statut retourné indique
+une erreur d'argument, de lecture ou d'encodage UTF-8.
+
+## Utiliser le CLI de démonstration
 
 ```sh
 make
@@ -52,14 +96,19 @@ La cible `run` accepte les mêmes arguments :
 make run ARGS="-lwc chemin/vers/fichier.txt"
 ```
 
+Un client complet qui utilise la bibliothèque est disponible dans
+`examples/count_file.c`. Construis-le avec `make example`, puis lance
+`./build/count_file chemin/vers/fichier.txt`.
+
 ## Tests
 
 ```sh
 make test
 ```
 
-Les tests couvrent les différentes opérations, leur combinaison, le comptage
-UTF-8 et les erreurs d'argument, de fichier ou d'encodage.
+Les tests couvrent l'API publique, l'exemple client et le CLI, notamment les
+différentes opérations, le comptage UTF-8 et les erreurs d'argument, de fichier
+ou d'encodage.
 Les tests unitaires utilisent Unity, référencé dans `vendor/unity/` par un
 commit précis.
 
