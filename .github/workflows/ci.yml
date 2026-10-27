@@ -17,7 +17,37 @@ jobs:
           submodules: recursive
 
       - name: Run tests and calculate coverage
-        run: make clean coverage
+        run: |
+          set -o pipefail
+          make clean coverage | tee coverage.log
+
+      - name: Summarize test results and coverage
+        if: always()
+        run: |
+          {
+            echo "# Tests et couverture"
+            echo
+            echo "Le statut du job indique si les tests ont tous réussi."
+            echo
+            echo "## Résultats des tests"
+            if grep -Fq "Tests 0 Failures" coverage.log && \
+               grep -Fq "Tous les tests ont réussi." coverage.log; then
+              echo "✅ Tests Unity et tests fonctionnels réussis."
+              grep -E 'Tests [0-9]+ Failures [0-9]+' coverage.log
+            else
+              echo "❌ Une ou plusieurs étapes de test ont échoué."
+            fi
+            echo
+            echo "## Couverture"
+            echo '```text'
+            if [ -f coverage.log ]; then
+              grep -E '^(File |Lines executed:|Branches executed:|Taken at least once:)' \
+                coverage.log || echo "Rapport de couverture non disponible."
+            else
+              echo "Rapport de couverture non disponible."
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Publish coverage report
         uses: actions/upload-artifact@v4

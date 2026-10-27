@@ -1,5 +1,7 @@
 # readline
 
+[![CI](https://github.com/CharlesVinois/readline/actions/workflows/ci.yml/badge.svg)](https://github.com/CharlesVinois/readline/actions/workflows/ci.yml)
+
 Petit programme C17 pour compter les lignes, les mots, les octets et les
 caractères UTF-8 d'un fichier.
 
@@ -69,8 +71,10 @@ make clean coverage
 ```
 
 Les rapports détaillés sont générés sous `build/coverage/`. GitHub Actions
-effectue également ce calcul à chaque push et pull request, puis publie les
-rapports comme artefact du workflow.
+effectue également ce calcul à chaque push et pull request. Le statut des tests
+est visible dans les checks GitHub, le résumé de l'exécution affiche les
+résultats et les pourcentages de couverture, et les rapports détaillés sont
+publiés comme artefact téléchargeable.
 
 ## Débogage
 
