@@ -65,13 +65,23 @@ valide l'installation et la compilation d'un client depuis un préfixe de
 staging, sans modifier le système. La version pkg-config vaut `0.1.0` par
 défaut et peut être réglée avec `VERSION` lors de l'installation.
 
-`readline_count_stream` lit un flux fourni par l'appelant, sans le fermer.
+`readline_count_stream` exige un flux lisible ouvert en mode binaire. Il lit
+depuis la position courante jusqu'à EOF ; il ne rembobine pas et ne ferme pas
+le flux. L'appelant en conserve la propriété. En cas de succès, le flux est à
+EOF, les compteurs demandés sont renseignés et les autres restent à zéro. En
+cas d'erreur, la structure des résultats n'est pas modifiée, mais le flux peut
+avoir avancé.
+
 Passez une combinaison des options `READLINE_COUNT_LINES`,
 `READLINE_COUNT_WORDS`, `READLINE_COUNT_BYTES` et
-`READLINE_COUNT_CHARACTERS`, ou `READLINE_COUNT_ALL`. En cas de succès, les
-compteurs demandés sont renseignés et les autres restent à zéro. En cas
-d'erreur, les résultats ne sont pas modifiés ; le statut retourné identifie
-une option invalide, une erreur de lecture ou un UTF-8 invalide/incomplet.
+`READLINE_COUNT_CHARACTERS`, ou `READLINE_COUNT_ALL`. Les options vides et les
+bits inconnus sont refusés. Les lignes comptent les octets `\n` et le contenu
+final s'il n'est pas terminé par `\n`. Les mots sont des séquences d'octets
+séparées par les caractères reconnus comme espaces par `isspace` dans la
+locale courante. Les caractères désignent les points de code Unicode d'un
+UTF-8 valide, pas les graphèmes visuels : un caractère accentué composé d'une
+lettre et d'un accent combinant compte pour deux. Une erreur de lecture ou un
+UTF-8 invalide/incomplet est signalé par le statut retourné.
 
 Un client complet est disponible dans `examples/count_file.c` :
 

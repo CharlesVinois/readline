@@ -249,6 +249,25 @@ static void test_keeps_the_stream_open_for_the_caller(void)
     fclose(file);
 }
 
+static void test_counts_from_current_position_through_eof(void)
+{
+    FILE *file = tmpfile();
+    struct readline_counts counts = {1, 2, 3, 4};
+
+    TEST_ASSERT_NOT_NULL(file);
+    TEST_ASSERT_EQUAL_UINT64(4, fwrite("data", 1, 4, file));
+    TEST_ASSERT_EQUAL_INT(0, fseek(file, 2, SEEK_SET));
+    TEST_ASSERT_EQUAL_INT(READLINE_STATUS_OK,
+                          readline_count_stream(file, READLINE_COUNT_BYTES,
+                                                &counts));
+    TEST_ASSERT_EQUAL_UINT64(2, counts.bytes);
+    TEST_ASSERT_EQUAL_UINT64(0, counts.lines);
+    TEST_ASSERT_EQUAL_UINT64(0, counts.words);
+    TEST_ASSERT_EQUAL_UINT64(0, counts.characters);
+    TEST_ASSERT_EQUAL_INT(4, ftell(file));
+    fclose(file);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -265,6 +284,7 @@ int main(void)
     RUN_TEST(test_utf8_is_not_validated_when_not_counting_characters);
     RUN_TEST(test_rejects_invalid_arguments);
     RUN_TEST(test_keeps_the_stream_open_for_the_caller);
+    RUN_TEST(test_counts_from_current_position_through_eof);
     RUN_TEST(test_reports_read_error_from_a_directory_stream);
     return UNITY_END();
 }

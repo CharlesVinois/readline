@@ -90,11 +90,21 @@ dans le système :
 make test-package
 ```
 
-L'API lit un `FILE *` ouvert en mode binaire. L'appelant reste propriétaire du
-flux et doit le fermer. Les options `READLINE_COUNT_LINES`, `READLINE_COUNT_WORDS`,
-`READLINE_COUNT_BYTES` et `READLINE_COUNT_CHARACTERS` permettent de choisir les
-compteurs ; `READLINE_COUNT_ALL` les active tous. Le statut retourné indique
-une erreur d'argument, de lecture ou d'encodage UTF-8.
+L'API lit un `FILE *` lisible, ouvert en mode binaire, de sa position courante
+jusqu'à EOF. Elle ne rembobine ni ne ferme le flux : l'appelant en garde la
+propriété et doit le fermer. En cas de succès, les champs demandés sont
+renseignés, les autres valent zéro et le flux est à EOF. En cas d'erreur, la
+structure de résultats reste inchangée, mais le flux peut avoir avancé.
+
+Les options `READLINE_COUNT_LINES`, `READLINE_COUNT_WORDS`,
+`READLINE_COUNT_BYTES` et `READLINE_COUNT_CHARACTERS` sont combinables ;
+`READLINE_COUNT_ALL` les active toutes. Les lignes comptent les `\n` ainsi
+qu'une dernière ligne non vide sans saut de ligne final. Les mots sont des
+séquences d'octets séparées par les espaces reconnus par `isspace` dans la
+locale courante. Les caractères sont des points de code Unicode en UTF-8
+valide, pas des graphèmes : une lettre suivie d'un accent combinant compte
+comme deux caractères. Le statut distingue les arguments invalides, les
+erreurs de lecture et les séquences UTF-8 invalides ou incomplètes.
 
 ## Utiliser le CLI de démonstration
 

@@ -27,14 +27,27 @@ struct readline_counts {
 };
 
 /*
- * Compte les propriétés demandées d'un flux ouvert en mode binaire.
- * Le flux reste ouvert et appartient à l'appelant. Les résultats restent
- * inchangés en cas d'erreur. Le comptage des caractères valide l'UTF-8.
+ * Lit stream de sa position courante jusqu'à EOF. L'appelant doit fournir un
+ * flux lisible ouvert en mode binaire ; cette fonction ne le rembobine pas et
+ * ne le ferme pas. En cas de succès, la position du flux est à EOF.
  *
- * Renvoie READLINE_STATUS_INVALID_ARGUMENT pour un pointeur NULL, un ensemble
- * d'options vide ou des bits inconnus ; READLINE_STATUS_READ_ERROR en cas
- * d'erreur d'E/S ; READLINE_STATUS_INVALID_UTF8 pour un UTF-8 mal formé ; et
- * READLINE_STATUS_INCOMPLETE_UTF8 si le dernier caractère est tronqué.
+ * Les options peuvent être combinées, mais ne doivent être ni nulles ni
+ * contenir de bits inconnus. En cas de succès, les compteurs demandés sont
+ * renseignés et les autres valent zéro. En cas d'erreur, *counts reste
+ * inchangé. stream et counts doivent être non NULL.
+ *
+ * Les lignes correspondent aux octets '\n' plus une dernière ligne non vide
+ * qui ne se termine pas par '\n'. Les mots sont des séquences d'octets non
+ * blancs, les espaces étant déterminés par isspace dans la locale courante.
+ * Les caractères sont des points de code Unicode encodés en UTF-8 valide ;
+ * les séquences combinées visuellement comptent donc plusieurs caractères.
+ * Le comptage des octets mesure les octets lus.
+ *
+ * Renvoie READLINE_STATUS_INVALID_ARGUMENT pour des pointeurs invalides ou
+ * des options invalides, READLINE_STATUS_READ_ERROR en cas d'erreur d'E/S,
+ * READLINE_STATUS_INVALID_UTF8 pour un UTF-8 mal formé et
+ * READLINE_STATUS_INCOMPLETE_UTF8 si le flux se termine au milieu d'un
+ * caractère UTF-8. En cas d'erreur, le flux peut déjà avoir avancé.
  */
 enum readline_status readline_count_stream(
     FILE *stream,
