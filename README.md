@@ -36,3 +36,13 @@ make test
 
 Les tests couvrent les fichiers vides, les lignes avec ou sans saut de ligne
 final, ainsi que les erreurs de fichier inexistant et d'argument manquant.
+
+## Déboguer
+
+```sh
+make debug
+gdb --args ./build/readline-debug chemin/vers/fichier.txt
+```
+
+Le guide du projet explique aussi les étapes du Makefile et les principaux
+concepts C : [docs/guide.md](docs/guide.md).
