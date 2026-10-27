@@ -2,24 +2,25 @@ CC = cc
 CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -O2
 TARGET = build/readline
 DEBUG_TARGET = build/readline-debug
-SOURCE = src/main.c
+SOURCES = src/main.c src/count.c
+HEADERS = src/count.h
 
 .PHONY: all run test debug clean
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCE)
+$(TARGET): $(SOURCES) $(HEADERS)
 	mkdir -p build
-	$(CC) $(CFLAGS) $(SOURCE) -o $(TARGET)
+	$(CC) $(CFLAGS) $(SOURCES) -o $(TARGET)
 
-$(DEBUG_TARGET): $(SOURCE)
+$(DEBUG_TARGET): $(SOURCES) $(HEADERS)
 	mkdir -p build
-	$(CC) -std=c17 -Wall -Wextra -Wpedantic -O0 -g $(SOURCE) -o $(DEBUG_TARGET)
+	$(CC) -std=c17 -Wall -Wextra -Wpedantic -O0 -g $(SOURCES) -o $(DEBUG_TARGET)
 
 debug: $(DEBUG_TARGET)
 
 run: $(TARGET)
-	./$(TARGET) "$(FILE)"
+	./$(TARGET) $(ARGS)
 
 test: $(TARGET)
 	sh tests/test_line_count.sh "$(TARGET)"

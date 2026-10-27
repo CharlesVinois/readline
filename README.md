@@ -1,48 +1,63 @@
 # readline
 
-Projet C utilisant le standard C17 et GNU Make.
+Petit programme C17 pour compter les lignes, les mots, les octets et les
+caractères UTF-8 d'un fichier.
 
 ## Prérequis
 
 - Un compilateur C (par exemple GCC ou Clang)
 - GNU Make
 
-## Compiler
+## Compiler et analyser un fichier
 
 ```sh
 make
+./build/readline -l chemin/vers/fichier.txt
 ```
 
-Le programme compilé sera placé dans `build/readline`.
-
-## Compter les lignes d'un fichier
+Les options peuvent être combinées :
 
 ```sh
-./build/readline chemin/vers/fichier.txt
+./build/readline -lwc chemin/vers/fichier.txt
 ```
 
-La dernière ligne est comptée même si le fichier ne se termine pas par un
-saut de ligne. La cible `run` accepte aussi le chemin du fichier :
+- `-l` ou `--lines` : compter les lignes ;
+- `-w` ou `--words` : compter les mots ;
+- `-c` ou `--bytes` : compter les octets ;
+- `-m` ou `--characters` : compter les caractères UTF-8 ;
+- `-h` ou `--help` : afficher l'aide.
+
+Sans option, le programme affiche l'aide. Les caractères sont validés comme
+UTF-8 ; une séquence invalide provoque une erreur. La dernière ligne est
+comptée même sans saut de ligne final.
+
+La cible `run` accepte les mêmes arguments :
 
 ```sh
-make run FILE=chemin/vers/fichier.txt
+make run ARGS="-lwc chemin/vers/fichier.txt"
 ```
 
-## Vérifier le comptage
+## Tests
 
 ```sh
 make test
 ```
 
-Les tests couvrent les fichiers vides, les lignes avec ou sans saut de ligne
-final, ainsi que les erreurs de fichier inexistant et d'argument manquant.
+Les tests couvrent les différentes opérations, leur combinaison, le comptage
+UTF-8 et les erreurs d'argument, de fichier ou d'encodage.
 
-## Déboguer
+## Débogage
 
 ```sh
 make debug
-gdb --args ./build/readline-debug chemin/vers/fichier.txt
+gdb --args ./build/readline-debug -l chemin/vers/fichier.txt
 ```
 
-Le guide du projet explique aussi les étapes du Makefile et les principaux
-concepts C : [docs/guide.md](docs/guide.md).
+Pour les explications détaillées sur les concepts C, la compilation, les tests
+et le débogage, consulte [le guide du projet](docs/guide.md).
+
+Pour supprimer les fichiers générés :
+
+```sh
+make clean
+```

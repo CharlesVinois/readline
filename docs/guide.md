@@ -5,21 +5,48 @@ quelques bases du langage C.
 
 ## Utiliser le programme
 
-Compiler et compter les lignes d'un fichier :
+Afficher l'aide :
 
 ```sh
-make
-./build/readline chemin/vers/fichier.txt
+./build/readline --help
 ```
 
-Ou utiliser la cible `run` :
+Chaque opération est demandée avec une option :
 
 ```sh
-make run FILE=chemin/vers/fichier.txt
+./build/readline -l chemin/vers/fichier.txt
+./build/readline -w chemin/vers/fichier.txt
+./build/readline -c chemin/vers/fichier.txt
+./build/readline -m chemin/vers/fichier.txt
 ```
 
-Le compteur compte chaque saut de ligne et la dernière ligne si elle ne se
-termine pas par `\n`. Un fichier vide contient zéro ligne.
+Les options courtes `-l`, `-w`, `-c` et `-m` comptent respectivement les
+lignes, les mots, les octets et les caractères UTF-8. Les options longues
+équivalentes sont `--lines`, `--words`, `--bytes` et `--characters`.
+
+On peut demander plusieurs résultats à la fois, soit en regroupant les options
+courtes, soit en les séparant :
+
+```sh
+./build/readline -lwc chemin/vers/fichier.txt
+./build/readline --lines --words --bytes chemin/vers/fichier.txt
+```
+
+Sans option, l'exécutable affiche l'aide. `-h` et `--help` affichent également
+l'aide. Pour un chemin qui commence par `-`, placez `--` avant le chemin.
+
+La cible `run` transmet les arguments via `ARGS` :
+
+```sh
+make run ARGS="-lwc chemin/vers/fichier.txt"
+```
+
+Les lignes comptent les sauts `\n` et le contenu final s'il ne s'y termine
+pas. Les mots sont séparés par les espaces reconnus par `isspace`. Les octets
+comptent les unités de stockage du fichier ; les caractères comptent les
+points de code UTF-8. Par exemple, `é` compte comme un caractère mais deux
+octets. Un UTF-8 mal formé provoque une erreur si le comptage des caractères
+est demandé. Un fichier vide produit zéro pour chaque compteur.
 
 Exécuter les tests :
 
@@ -35,7 +62,7 @@ make test
 - `CFLAGS` regroupe les options de compilation : `-std=c17` sélectionne le
   standard C17, `-Wall -Wextra -Wpedantic` active les avertissements et `-O2`
   active les optimisations.
-- `SOURCE` désigne le fichier C à compiler.
+- `SOURCES` désigne les fichiers C à compiler.
 - `TARGET` et `DEBUG_TARGET` donnent le chemin des exécutables générés.
 
 La syntaxe `$(NOM)` est remplacée par la valeur de la variable `NOM`.
@@ -47,7 +74,8 @@ indentées par une tabulation lorsque la cible est absente ou plus ancienne que
 ses dépendances.
 
 - `all` est la cible par défaut et construit l'exécutable normal.
-- `run` construit puis exécute le programme avec le fichier défini par `FILE`.
+- `run` construit puis exécute le programme avec les arguments définis par
+  `ARGS`.
 - `test` construit le programme et lance les tests shell.
 - `debug` construit une version destinée au débogage.
 - `clean` supprime les fichiers générés de `build/`.
@@ -58,7 +86,7 @@ fichiers à générer.
 La commande de compilation normale ressemble à :
 
 ```sh
-cc -std=c17 -Wall -Wextra -Wpedantic -O2 src/main.c -o build/readline
+cc -std=c17 -Wall -Wextra -Wpedantic -O2 src/main.c src/count.c -o build/readline
 ```
 
 `mkdir -p build` crée le dossier de sortie s'il n'existe pas. L'option `-o`
