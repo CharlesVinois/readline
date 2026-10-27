@@ -106,11 +106,24 @@ Un client complet qui utilise la bibliothèque est disponible dans
 make test
 ```
 
-Les tests couvrent l'API publique, l'exemple client et le CLI, notamment les
-différentes opérations, le comptage UTF-8 et les erreurs d'argument, de fichier
-ou d'encodage.
-Les tests unitaires utilisent Unity, référencé dans `vendor/unity/` par un
-commit précis.
+La suite est séparée en trois catégories, exécutables indépendamment :
+
+```sh
+make test-unit
+make test-functional
+make test-integration
+```
+
+- Les tests unitaires Unity vérifient l'API de comptage, les compteurs, les
+  limites UTF-8 et les erreurs de flux.
+- Les tests fonctionnels lancent le CLI pour vérifier les options, les sorties
+  et les erreurs observables, avec des fautes contrôlées pour les chemins
+  d'erreur difficiles à déclencher naturellement.
+- Les tests d'intégration construisent et exécutent un client distinct lié à la
+  bibliothèque statique.
+
+`make test` exécute les trois catégories. Unity est référencé dans
+`vendor/unity/` par un commit précis.
 
 Pour exécuter les tests avec l'instrumentation de couverture et générer un
 rapport de lignes et de branches :
@@ -123,7 +136,9 @@ Les rapports détaillés sont générés sous `build/coverage/`. GitHub Actions
 effectue également ce calcul à chaque push et pull request. Le statut des tests
 est visible dans les checks GitHub, le résumé de l'exécution affiche les
 résultats et les pourcentages de couverture, et les rapports détaillés sont
-publiés comme artefact téléchargeable.
+publiés comme artefact téléchargeable. Avec GCC/gcov, les tests couvrent 100 %
+des lignes et des branches de `src/main.c` et `src/count.c` ; `make coverage`
+échoue si ce seuil n'est plus atteint.
 
 ## Débogage
 

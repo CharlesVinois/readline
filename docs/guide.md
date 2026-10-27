@@ -142,11 +142,12 @@ ses dépendances.
 - `example` compile le client démonstratif contre l'archive publique.
 - `run` construit puis exécute le programme avec les arguments définis par
   `ARGS`.
-- `test` construit le CLI, le client et lance les tests unitaires et
-  fonctionnels.
-- `$(TEST_TARGET)` compile Unity et lie les tests à la bibliothèque statique sous
-  `vendor/unity/`. Si le sous-module n'est pas initialisé, `make` indique la
-  commande nécessaire.
+- `test` exécute les trois catégories de tests.
+- `test-unit`, `test-functional` et `test-integration` exécutent séparément les
+  tests de l'API, du CLI et du client externe.
+- `$(UNIT_TEST_TARGET)` compile Unity et lie les tests unitaires à la
+  bibliothèque statique sous `vendor/unity/`. Si le sous-module n'est pas
+  initialisé, `make` indique la commande nécessaire.
 - `debug` construit une version destinée au débogage.
 - `clean` supprime les fichiers générés de `build/`.
 
@@ -354,14 +355,26 @@ fonctions standard de lecture et d'écriture.
 
 ## Comprendre les tests
 
-`make test` exécute deux groupes de tests :
+`make test` exécute trois catégories. Chacune peut également être lancée
+indépendamment :
 
-- `tests/test_count.c` utilise Unity pour vérifier directement le module de
-  comptage : flux vide, compteurs, lignes sans saut final, UTF-8 valide,
-  invalide ou incomplet.
-- `tests/test_line_count.sh` vérifie l'exécutable complet, notamment les
-  options, l'aide et les erreurs. Il compare les sorties attendues puis nettoie
-  les fichiers temporaires.
+```sh
+make test-unit
+make test-functional
+make test-integration
+```
+
+- `tests/unit/test_count.c` utilise Unity pour vérifier directement l'API :
+  compteurs, limites UTF-8, arguments invalides et erreurs de lecture.
+- `tests/functional/test_cli.sh` vérifie le comportement observable du CLI :
+  options, aide, sorties et erreurs.
+- `tests/functional/test_cli_faults.sh` vérifie les erreurs de statut et de
+  fermeture grâce à des wrappers réservés aux exécutables de test.
+- `tests/integration/test_library_example.sh` lance un client séparé qui a été
+  compilé et lié contre l'archive statique.
+
+Les scripts fonctionnels et d'intégration créent puis nettoient leurs fichiers
+temporaires.
 
 Unity est le framework C open source de ThrowTheSwitch, version 2.6.1. Le
 sous-module `vendor/unity/` pointe vers un commit précis de son dépôt ; la
@@ -371,8 +384,8 @@ changement dans le dépôt principal.
 
 ## Mesurer la couverture
 
-La cible `coverage` recompile le programme et les tests avec `--coverage`, puis
-exécute les tests unitaires et fonctionnels sur ces binaires instrumentés :
+La cible `coverage` recompile le programme, les tests unitaires et le client
+d'intégration avec `--coverage`, puis exécute les trois catégories :
 
 ```sh
 make clean coverage
@@ -381,9 +394,11 @@ make clean coverage
 `gcov` utilise les compteurs collectés pendant ces exécutions pour produire
 les rapports de lignes et de branches pour les fichiers de `src/`. Les fichiers
 `.gcov` sont écrits dans `build/coverage/`. Dans GitHub Actions, ces rapports
-sont publiés comme artefact du workflow. Aucun seuil minimal n'est configuré :
-la couverture indique les parties exercées par les tests sans faire échouer le
-build sur un pourcentage choisi arbitrairement.
+sont publiés comme artefact du workflow. La couverture des lignes et celle des
+branches sont distinctes : les rapports servent à repérer les chemins encore
+non exercés et ne remplacent pas la vérification des comportements. La suite
+actuelle atteint 100 % des lignes et des branches dans `src/main.c` et
+`src/count.c` avec GCC/gcov ; la cible échoue si ce seuil n'est plus atteint.
 
 ## Compilation séparée
 

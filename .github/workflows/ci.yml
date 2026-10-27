@@ -31,8 +31,9 @@ jobs:
             echo
             echo "## Résultats des tests"
             if grep -Fq "Tests 0 Failures" coverage.log && \
-               grep -Fq "Tous les tests ont réussi." coverage.log; then
-              echo "✅ Tests Unity et tests fonctionnels réussis."
+               grep -Fq "Tous les tests ont réussi." coverage.log && \
+               grep -Fq "OK : intégration d’un client lié à la bibliothèque" coverage.log; then
+              echo "✅ Tests unitaires, fonctionnels et d’intégration réussis."
               grep -E 'Tests [0-9]+ Failures [0-9]+' coverage.log
             else
               echo "❌ Une ou plusieurs étapes de test ont échoué."

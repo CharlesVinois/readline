@@ -19,4 +19,4 @@ if [ "$actual" != "$expected" ]; then
     exit 1
 fi
 
-printf 'OK : client de bibliothèque\n'
+printf 'OK : intégration d’un client lié à la bibliothèque\n'

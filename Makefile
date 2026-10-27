@@ -3,8 +3,9 @@ CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -O2
 TARGET = build/readline
 LIBRARY = build/libreadline_stats.a
 DEBUG_TARGET = build/readline-debug
-TEST_TARGET = build/test_count
+UNIT_TEST_TARGET = build/test_count
 EXAMPLE_TARGET = build/count_file
+FAULT_TARGET = build/readline-faults
 COVERAGE_DIR = build/coverage
 COVERAGE_CFLAGS = $(CFLAGS) -O0 -g --coverage -fprofile-abs-path
 GCOV ?= gcov
@@ -17,9 +18,10 @@ UNITY_DIR = vendor/unity
 UNITY_SOURCE = $(UNITY_DIR)/src/unity.c
 UNITY_FILES = $(wildcard $(UNITY_DIR)/src/*.c $(UNITY_DIR)/src/*.h)
 COVERAGE_APP_OBJECTS = $(COVERAGE_DIR)/main.o $(COVERAGE_DIR)/count.o
-COVERAGE_TEST_OBJECTS = $(COVERAGE_DIR)/test_count.o $(COVERAGE_DIR)/count.o $(COVERAGE_DIR)/unity.o
+FAULT_INJECTION_SOURCE = tests/functional/fault_injection.c
+COVERAGE_UNIT_OBJECTS = $(COVERAGE_DIR)/test_count.o $(COVERAGE_DIR)/count.o $(COVERAGE_DIR)/unity.o
 
-.PHONY: all library run test debug example coverage install clean check-unity
+.PHONY: all library run test test-unit test-functional test-integration debug example coverage install clean check-unity
 
 all: $(LIBRARY) $(TARGET)
 
@@ -39,6 +41,11 @@ $(APP_OBJECT): src/main.c $(HEADERS)
 $(TARGET): $(APP_OBJECT) $(LIBRARY)
 	$(CC) $(CFLAGS) $(APP_OBJECT) $(LIBRARY) -o $@
 
+$(FAULT_TARGET): src/main.c src/count.c $(FAULT_INJECTION_SOURCE) $(HEADERS)
+	mkdir -p build
+	$(CC) $(CFLAGS) -Iinclude src/main.c src/count.c $(FAULT_INJECTION_SOURCE) \
+		-Wl,--wrap=fclose -Wl,--wrap=readline_count_stream -o $@
+
 $(DEBUG_TARGET): src/main.c src/count.c $(HEADERS)
 	mkdir -p build
 	$(CC) -std=c17 -Wall -Wextra -Wpedantic -O0 -g -Iinclude src/main.c src/count.c -o $(DEBUG_TARGET)
@@ -53,9 +60,9 @@ check-unity:
 	}
 
 # Compile les tests unitaires avec Unity et la bibliothèque publique.
-$(TEST_TARGET): tests/test_count.c $(LIBRARY) $(HEADERS) $(UNITY_FILES) check-unity
+$(UNIT_TEST_TARGET): tests/unit/test_count.c $(LIBRARY) $(HEADERS) $(UNITY_FILES) check-unity
 	mkdir -p build
-	$(CC) $(CFLAGS) -Iinclude -I$(UNITY_DIR)/src tests/test_count.c $(LIBRARY) $(UNITY_SOURCE) -o $(TEST_TARGET)
+	$(CC) $(CFLAGS) -Iinclude -I$(UNITY_DIR)/src $< $(LIBRARY) $(UNITY_SOURCE) -o $@
 
 # Compile un client d'exemple contre la bibliothèque statique.
 $(EXAMPLE_TARGET): examples/count_file.c $(LIBRARY) $(HEADERS)
@@ -78,7 +85,7 @@ $(COVERAGE_DIR)/count.o: src/count.c $(HEADERS)
 	mkdir -p $(COVERAGE_DIR)
 	$(CC) $(COVERAGE_CFLAGS) -Iinclude -c $< -o $@
 
-$(COVERAGE_DIR)/test_count.o: tests/test_count.c $(HEADERS) $(UNITY_FILES) check-unity
+$(COVERAGE_DIR)/test_count.o: tests/unit/test_count.c $(HEADERS) $(UNITY_FILES) check-unity
 	mkdir -p $(COVERAGE_DIR)
 	$(CC) $(COVERAGE_CFLAGS) -Iinclude -I$(UNITY_DIR)/src -c $< -o $@
 
@@ -86,27 +93,47 @@ $(COVERAGE_DIR)/unity.o: $(UNITY_SOURCE) $(UNITY_FILES) check-unity
 	mkdir -p $(COVERAGE_DIR)
 	$(CC) $(COVERAGE_CFLAGS) -I$(UNITY_DIR)/src -c $(UNITY_SOURCE) -o $@
 
-$(COVERAGE_DIR)/readline: $(COVERAGE_APP_OBJECTS)
+$(COVERAGE_DIR)/fault_injection.o: $(FAULT_INJECTION_SOURCE) $(HEADERS)
+	mkdir -p $(COVERAGE_DIR)
+	$(CC) $(COVERAGE_CFLAGS) -Iinclude -c $< -o $@
+
+$(COVERAGE_DIR)/readline: $(COVERAGE_APP_OBJECTS) $(COVERAGE_DIR)/fault_injection.o
+	$(CC) --coverage $^ -Wl,--wrap=fclose -Wl,--wrap=readline_count_stream -o $@
+
+$(COVERAGE_DIR)/test_count: $(COVERAGE_UNIT_OBJECTS)
 	$(CC) --coverage $^ -o $@
 
-$(COVERAGE_DIR)/test_count: $(COVERAGE_TEST_OBJECTS)
-	$(CC) --coverage $^ -o $@
+$(COVERAGE_DIR)/count_file: examples/count_file.c $(COVERAGE_DIR)/count.o $(HEADERS)
+	$(CC) $(COVERAGE_CFLAGS) -Iinclude $< $(COVERAGE_DIR)/count.o -o $@
 
 run: $(TARGET)
 	./$(TARGET) $(ARGS)
 
-# Exécute les tests unitaires Unity et les tests fonctionnels.
-test: $(LIBRARY) $(TARGET) $(TEST_TARGET) $(EXAMPLE_TARGET)
-	./$(TEST_TARGET)
-	sh tests/test_line_count.sh "$(TARGET)"
-	sh tests/test_library_example.sh "$(EXAMPLE_TARGET)"
+# Chaque cible exécute une seule catégorie de tests.
+test-unit: $(UNIT_TEST_TARGET)
+	./$(UNIT_TEST_TARGET)
 
-# Exécute les tests instrumentés et produit les rapports gcov de src/.
-coverage: test $(COVERAGE_DIR)/readline $(COVERAGE_DIR)/test_count
+test-functional: $(TARGET) $(FAULT_TARGET)
+	sh tests/functional/test_cli.sh "$(TARGET)"
+	sh tests/functional/test_cli_faults.sh "$(FAULT_TARGET)"
+
+test-integration: $(EXAMPLE_TARGET)
+	sh tests/integration/test_library_example.sh "$(EXAMPLE_TARGET)"
+
+test: test-unit test-functional test-integration
+
+# Exécute chaque catégorie sur les binaires instrumentés et produit les rapports.
+coverage: $(COVERAGE_DIR)/readline $(COVERAGE_DIR)/test_count $(COVERAGE_DIR)/count_file
 	rm -f $(COVERAGE_DIR)/*.gcda
 	./$(COVERAGE_DIR)/test_count
-	sh tests/test_line_count.sh "$(COVERAGE_DIR)/readline"
-	cd $(COVERAGE_DIR) && $(GCOV) -b -c -o . ../../src/main.c ../../src/count.c
+	sh tests/functional/test_cli.sh "$(COVERAGE_DIR)/readline"
+	sh tests/functional/test_cli_faults.sh "$(COVERAGE_DIR)/readline"
+	sh tests/integration/test_library_example.sh "$(COVERAGE_DIR)/count_file"
+	cd $(COVERAGE_DIR) && $(GCOV) -b -c -o . ../../src/main.c ../../src/count.c \
+		| tee gcov.log
+	test "$$(grep -c '^Lines executed:100.00%' $(COVERAGE_DIR)/gcov.log)" -eq 3
+	test "$$(grep -c '^Branches executed:100.00%' $(COVERAGE_DIR)/gcov.log)" -eq 2
+	test "$$(grep -c '^Taken at least once:100.00%' $(COVERAGE_DIR)/gcov.log)" -eq 2
 
 clean:
 	rm -rf build
