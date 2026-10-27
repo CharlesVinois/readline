@@ -376,6 +376,16 @@ make test-integration
 Les scripts fonctionnels et d'intégration créent puis nettoient leurs fichiers
 temporaires.
 
+Pour exécuter ces suites avec AddressSanitizer et
+UndefinedBehaviorSanitizer :
+
+```sh
+make clean sanitize
+```
+
+Les binaires instrumentés sont isolés dans `build/sanitize/` afin de ne pas
+remplacer les artefacts de compilation ordinaires.
+
 Unity est le framework C open source de ThrowTheSwitch, version 2.6.1. Le
 sous-module `vendor/unity/` pointe vers un commit précis de son dépôt ; la
 licence MIT est disponible dans ce sous-module. Pour le mettre à jour,

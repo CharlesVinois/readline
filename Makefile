@@ -7,7 +7,10 @@ UNIT_TEST_TARGET = build/test_count
 EXAMPLE_TARGET = build/count_file
 FAULT_TARGET = build/readline-faults
 COVERAGE_DIR = build/coverage
+SANITIZER_DIR = build/sanitize
 COVERAGE_CFLAGS = $(CFLAGS) -O0 -g --coverage -fprofile-abs-path
+SANITIZER_CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -O1 -g \
+	-fsanitize=address,undefined -fno-omit-frame-pointer
 GCOV ?= gcov
 PREFIX ?= /usr/local
 DESTDIR ?=
@@ -20,8 +23,11 @@ UNITY_FILES = $(wildcard $(UNITY_DIR)/src/*.c $(UNITY_DIR)/src/*.h)
 COVERAGE_APP_OBJECTS = $(COVERAGE_DIR)/main.o $(COVERAGE_DIR)/count.o
 FAULT_INJECTION_SOURCE = tests/functional/fault_injection.c
 COVERAGE_UNIT_OBJECTS = $(COVERAGE_DIR)/test_count.o $(COVERAGE_DIR)/count.o $(COVERAGE_DIR)/unity.o
+SANITIZER_LIBRARY_OBJECT = $(SANITIZER_DIR)/count.o
+SANITIZER_LIBRARY = $(SANITIZER_DIR)/libreadline_stats.a
+SANITIZER_TEST_OBJECTS = $(SANITIZER_DIR)/test_count.o $(SANITIZER_DIR)/unity.o
 
-.PHONY: all library run test test-unit test-functional test-integration debug example coverage install clean check-unity
+.PHONY: all library run test test-unit test-functional test-integration debug example coverage sanitize install clean check-unity
 
 all: $(LIBRARY) $(TARGET)
 
@@ -106,6 +112,36 @@ $(COVERAGE_DIR)/test_count: $(COVERAGE_UNIT_OBJECTS)
 $(COVERAGE_DIR)/count_file: examples/count_file.c $(COVERAGE_DIR)/count.o $(HEADERS)
 	$(CC) $(COVERAGE_CFLAGS) -Iinclude $< $(COVERAGE_DIR)/count.o -o $@
 
+$(SANITIZER_DIR)/count.o: src/count.c $(HEADERS)
+	mkdir -p $(SANITIZER_DIR)
+	$(CC) $(SANITIZER_CFLAGS) -Iinclude -c $< -o $@
+
+$(SANITIZER_LIBRARY): $(SANITIZER_LIBRARY_OBJECT)
+	$(AR) rcs $@ $^
+
+$(SANITIZER_DIR)/readline: src/main.c $(SANITIZER_LIBRARY) $(HEADERS)
+	$(CC) $(SANITIZER_CFLAGS) -Iinclude $< $(SANITIZER_LIBRARY) -o $@
+
+$(SANITIZER_DIR)/readline-faults: src/main.c src/count.c $(FAULT_INJECTION_SOURCE) $(HEADERS)
+	mkdir -p $(SANITIZER_DIR)
+	$(CC) $(SANITIZER_CFLAGS) -Iinclude src/main.c src/count.c \
+		$(FAULT_INJECTION_SOURCE) -Wl,--wrap=fclose \
+		-Wl,--wrap=readline_count_stream -o $@
+
+$(SANITIZER_DIR)/test_count.o: tests/unit/test_count.c $(HEADERS) $(UNITY_FILES) check-unity
+	mkdir -p $(SANITIZER_DIR)
+	$(CC) $(SANITIZER_CFLAGS) -Iinclude -I$(UNITY_DIR)/src -c $< -o $@
+
+$(SANITIZER_DIR)/unity.o: $(UNITY_SOURCE) $(UNITY_FILES) check-unity
+	mkdir -p $(SANITIZER_DIR)
+	$(CC) $(SANITIZER_CFLAGS) -I$(UNITY_DIR)/src -c $(UNITY_SOURCE) -o $@
+
+$(SANITIZER_DIR)/test_count: $(SANITIZER_TEST_OBJECTS) $(SANITIZER_LIBRARY)
+	$(CC) $(SANITIZER_CFLAGS) $^ -o $@
+
+$(SANITIZER_DIR)/count_file: examples/count_file.c $(SANITIZER_LIBRARY) $(HEADERS)
+	$(CC) $(SANITIZER_CFLAGS) -Iinclude $< $(SANITIZER_LIBRARY) -o $@
+
 run: $(TARGET)
 	./$(TARGET) $(ARGS)
 
@@ -134,6 +170,13 @@ coverage: $(COVERAGE_DIR)/readline $(COVERAGE_DIR)/test_count $(COVERAGE_DIR)/co
 	test "$$(grep -c '^Lines executed:100.00%' $(COVERAGE_DIR)/gcov.log)" -eq 3
 	test "$$(grep -c '^Branches executed:100.00%' $(COVERAGE_DIR)/gcov.log)" -eq 2
 	test "$$(grep -c '^Taken at least once:100.00%' $(COVERAGE_DIR)/gcov.log)" -eq 2
+
+sanitize: $(SANITIZER_DIR)/readline $(SANITIZER_DIR)/readline-faults \
+	$(SANITIZER_DIR)/test_count $(SANITIZER_DIR)/count_file
+	ASAN_OPTIONS=detect_leaks=1 ./$(SANITIZER_DIR)/test_count
+	ASAN_OPTIONS=detect_leaks=1 sh tests/functional/test_cli.sh "$(SANITIZER_DIR)/readline"
+	ASAN_OPTIONS=detect_leaks=1 sh tests/functional/test_cli_faults.sh "$(SANITIZER_DIR)/readline-faults"
+	ASAN_OPTIONS=detect_leaks=1 sh tests/integration/test_library_example.sh "$(SANITIZER_DIR)/count_file"
 
 clean:
 	rm -rf build

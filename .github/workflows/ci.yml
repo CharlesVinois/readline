@@ -8,6 +8,17 @@ permissions:
   contents: read
 
 jobs:
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository and Unity submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Run tests with AddressSanitizer and UndefinedBehaviorSanitizer
+        run: make clean sanitize
+
   test:
     runs-on: ubuntu-latest
     steps:

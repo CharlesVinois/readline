@@ -125,6 +125,16 @@ make test-integration
 `make test` exécute les trois catégories. Unity est référencé dans
 `vendor/unity/` par un commit précis.
 
+Pour détecter des erreurs mémoire et des comportements indéfinis :
+
+```sh
+make clean sanitize
+```
+
+Cette cible reconstruit les programmes et les trois suites dans
+`build/sanitize/` avec AddressSanitizer et UndefinedBehaviorSanitizer, sans
+remplacer les artefacts ordinaires.
+
 Pour exécuter les tests avec l'instrumentation de couverture et générer un
 rapport de lignes et de branches :
 
