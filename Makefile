@@ -14,7 +14,7 @@ SANITIZER_CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -O1 -g \
 GCOV ?= gcov
 PREFIX ?= /usr/local
 DESTDIR ?=
-VERSION ?= 0.1.0
+VERSION ?= $(shell cat VERSION)
 PKG_CONFIG ?= pkg-config
 PKG_CONFIG_FILE = pkgconfig/readline_stats.pc.in
 PACKAGE_STAGE = build/package-stage

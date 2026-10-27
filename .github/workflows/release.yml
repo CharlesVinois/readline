@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository and Unity submodule
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y pkg-config
+
+      - name: Ensure tag matches the project version
+        run: test "$GITHUB_REF_NAME" = "v$(cat VERSION)"
+
+      - name: Run tests
+        run: make clean test CC=gcc
+
+      - name: Verify coverage
+        run: make clean coverage CC=gcc
+
+      - name: Run sanitizers
+        run: make clean sanitize CC=gcc
+
+      - name: Create source archive and checksum
+        run: |
+          version=$(cat VERSION)
+          source_dir="build/release/source/readline-${version}"
+          mkdir -p "${source_dir}/vendor/unity"
+          git archive --format=tar "$GITHUB_REF_NAME" \
+            | tar -x -C "${source_dir}"
+          git -C vendor/unity archive --format=tar HEAD \
+            | tar -x -C "${source_dir}/vendor/unity"
+          tar -C build/release/source -czf \
+            "$GITHUB_WORKSPACE/build/release/readline-${version}.tar.gz" \
+            "readline-${version}"
+          cd build/release
+          sha256sum "readline-${version}.tar.gz" > SHA256SUMS
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(cat VERSION)
+          gh release create "$GITHUB_REF_NAME" \
+            "build/release/readline-${version}.tar.gz" \
+            build/release/SHA256SUMS \
+            --title "readline ${GITHUB_REF_NAME}" \
+            --generate-notes

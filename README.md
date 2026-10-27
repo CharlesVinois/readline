@@ -5,6 +5,10 @@
 Bibliothèque C17 pour compter les lignes, les mots, les octets et les caractères
 UTF-8 d'un flux, avec un exécutable CLI de démonstration.
 
+La version courante est indiquée dans [VERSION](VERSION). Les changements sont
+consignés dans le [journal des modifications](CHANGELOG.md) et le projet est
+distribué sous licence [MIT](LICENSE).
+
 ## Prérequis
 
 - Un compilateur C (par exemple GCC ou Clang)
@@ -79,8 +83,8 @@ répertoire pkg-config à `PKG_CONFIG_PATH`, par exemple :
 export PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig"
 ```
 
-Le fichier pkg-config annonce la version `0.1.0` par défaut ; elle peut être
-ajustée lors de l'installation avec `VERSION`, par exemple
+Le fichier pkg-config utilise la version de `VERSION` ; une autre valeur peut
+être passée à l'installation avec `VERSION`, par exemple
 `make install PREFIX=/usr VERSION=1.0.0`.
 
 Pour vérifier l'intégration depuis un répertoire temporaire, sans installer
@@ -206,3 +210,21 @@ Pour supprimer les fichiers générés :
 ```sh
 make clean
 ```
+
+## Préparer une publication
+
+`VERSION` est la source de vérité pour la version et les métadonnées
+`pkg-config`. Avant une nouvelle publication, mets à jour `VERSION` et ajoute
+les changements correspondants à `CHANGELOG.md`. La publication se déclenche
+en poussant un tag correspondant exactement à la version, par exemple :
+
+```sh
+version=$(cat VERSION)
+git tag -a "v${version}" -m "readline v${version}"
+git push origin "v${version}"
+```
+
+Le workflow GitHub Actions [Release](.github/workflows/release.yml) vérifie que
+le tag correspond à `VERSION`, relance les tests, la couverture et les
+sanitizers, puis crée une GitHub Release contenant l'archive source et son
+fichier SHA-256. Il ne faut publier le tag qu'une fois le commit prêt.

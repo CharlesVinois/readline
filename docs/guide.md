@@ -62,8 +62,8 @@ cc -std=c17 $(pkg-config --cflags readline_stats) client.c \
 Pour un préfixe personnalisé, exportez son répertoire pkg-config, par exemple
 `PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig"`. La cible `make test-package`
 valide l'installation et la compilation d'un client depuis un préfixe de
-staging, sans modifier le système. La version pkg-config vaut `0.1.0` par
-défaut et peut être réglée avec `VERSION` lors de l'installation.
+staging, sans modifier le système. La version pkg-config vient du fichier
+`VERSION` et peut être remplacée avec `VERSION` lors de l'installation.
 
 `readline_count_stream` exige un flux lisible ouvert en mode binaire. Il lit
 depuis la position courante jusqu'à EOF ; il ne rembobine pas et ne ferme pas
@@ -438,6 +438,22 @@ actuelle atteint 100 % des lignes et des branches dans `src/main.c` et
 `src/count.c` avec GCC/gcov ; la cible échoue si ce seuil n'est plus atteint.
 La CI compile également le projet et exécute les trois catégories de tests avec
 GCC et Clang.
+
+## Préparer une publication
+
+`VERSION` fournit le numéro utilisé pour les métadonnées `pkg-config`.
+Documentez les changements dans `CHANGELOG.md`, puis créez et poussez le tag
+`v` suivi de cette version. Par exemple :
+
+```sh
+version=$(cat VERSION)
+git tag -a "v${version}" -m "readline v${version}"
+git push origin "v${version}"
+```
+
+Le workflow `.github/workflows/release.yml` refuse un tag qui ne correspond
+pas à `VERSION`. Il relance les tests, la couverture et les sanitizers, puis
+attache à la GitHub Release une archive source et son checksum SHA-256.
 
 ## Compilation séparée
 
