@@ -61,6 +61,9 @@ UTF-8 et les erreurs d'argument, de fichier ou d'encodage.
 Les tests unitaires utilisent Unity, référencé dans `vendor/unity/` par un
 commit précis.
 
+GitHub Actions exécute automatiquement ces tests à chaque push et à chaque
+pull request.
+
 ## Débogage
 
 ```sh
