@@ -27,3 +27,12 @@ saut de ligne. La cible `run` accepte aussi le chemin du fichier :
 ```sh
 make run FILE=chemin/vers/fichier.txt
 ```
+
+## Vérifier le comptage
+
+```sh
+make test
+```
+
+Les tests couvrent les fichiers vides, les lignes avec ou sans saut de ligne
+final, ainsi que les erreurs de fichier inexistant et d'argument manquant.

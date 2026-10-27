@@ -3,7 +3,7 @@ CFLAGS = -std=c17 -Wall -Wextra -Wpedantic -O2
 TARGET = build/readline
 SOURCE = src/main.c
 
-.PHONY: all run clean
+.PHONY: all run test clean
 
 all: $(TARGET)
 
@@ -13,6 +13,9 @@ $(TARGET): $(SOURCE)
 
 run: $(TARGET)
 	./$(TARGET) "$(FILE)"
+
+test: $(TARGET)
+	sh tests/test_line_count.sh "$(TARGET)"
 
 clean:
 	rm -rf build
