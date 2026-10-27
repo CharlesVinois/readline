@@ -21,6 +21,11 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install pkg-config
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y pkg-config
+
       - name: Run unit, functional, and integration tests
         run: make clean test CC=${{ matrix.compiler }}
 

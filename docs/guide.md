@@ -50,6 +50,21 @@ Le préfixe peut être ajusté, par exemple avec `make install PREFIX=/usr`.
 L'archive se nomme `libreadline_stats.a` pour éviter toute confusion avec la
 bibliothèque GNU Readline.
 
+L'installation ajoute aussi `readline_stats.pc` dans
+`$(PREFIX)/lib/pkgconfig`. Pour compiler un client, `pkg-config` fournit le
+chemin de l'en-tête et le lien vers l'archive :
+
+```sh
+cc -std=c17 $(pkg-config --cflags readline_stats) client.c \
+  $(pkg-config --libs readline_stats) -o client
+```
+
+Pour un préfixe personnalisé, exportez son répertoire pkg-config, par exemple
+`PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig"`. La cible `make test-package`
+valide l'installation et la compilation d'un client depuis un préfixe de
+staging, sans modifier le système. La version pkg-config vaut `0.1.0` par
+défaut et peut être réglée avec `VERSION` lors de l'installation.
+
 `readline_count_stream` lit un flux fourni par l'appelant, sans le fermer.
 Passez une combinaison des options `READLINE_COUNT_LINES`,
 `READLINE_COUNT_WORDS`, `READLINE_COUNT_BYTES` et
@@ -372,6 +387,8 @@ make test-integration
   fermeture grâce à des wrappers réservés aux exécutables de test.
 - `tests/integration/test_library_example.sh` lance un client séparé qui a été
   compilé et lié contre l'archive statique.
+- `tests/integration/test_pkg_config.sh` valide les métadonnées installées puis
+  compile le client via `pkg-config`.
 
 Les scripts fonctionnels et d'intégration créent puis nettoient leurs fichiers
 temporaires.

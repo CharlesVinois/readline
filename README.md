@@ -9,6 +9,8 @@ UTF-8 d'un flux, avec un exécutable CLI de démonstration.
 
 - Un compilateur C (par exemple GCC ou Clang)
 - GNU Make
+- `pkg-config` pour les tests d'intégration et l'utilisation simplifiée par les
+  clients
 
 Unity est fourni comme sous-module Git. Après un clonage classique, initialise
 le sous-module avec :
@@ -60,6 +62,33 @@ sudo make install
 Le préfixe peut être personnalisé avec `make install PREFIX=/usr`.
 Le nom `libreadline_stats` évite une collision avec la bibliothèque GNU
 Readline, qui porte déjà le nom `libreadline`.
+
+L'installation inclut également `readline_stats.pc` sous
+`$(PREFIX)/lib/pkgconfig`. Après installation, un client peut obtenir les
+options nécessaires avec `pkg-config` :
+
+```sh
+cc -std=c17 $(pkg-config --cflags readline_stats) client.c \
+  $(pkg-config --libs readline_stats) -o client
+```
+
+Si la bibliothèque est installée dans un préfixe non standard, ajoutez son
+répertoire pkg-config à `PKG_CONFIG_PATH`, par exemple :
+
+```sh
+export PKG_CONFIG_PATH="$HOME/.local/lib/pkgconfig"
+```
+
+Le fichier pkg-config annonce la version `0.1.0` par défaut ; elle peut être
+ajustée lors de l'installation avec `VERSION`, par exemple
+`make install PREFIX=/usr VERSION=1.0.0`.
+
+Pour vérifier l'intégration depuis un répertoire temporaire, sans installer
+dans le système :
+
+```sh
+make test-package
+```
 
 L'API lit un `FILE *` ouvert en mode binaire. L'appelant reste propriétaire du
 flux et doit le fermer. Les options `READLINE_COUNT_LINES`, `READLINE_COUNT_WORDS`,

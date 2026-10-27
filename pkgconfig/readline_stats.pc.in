@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: readline_stats
+Description: C library for counting text stream statistics
+Version: @version@
+Libs: -L${libdir} -lreadline_stats
+Cflags: -I${includedir}

@@ -14,6 +14,10 @@ SANITIZER_CFLAGS ?= -std=c17 -Wall -Wextra -Wpedantic -O1 -g \
 GCOV ?= gcov
 PREFIX ?= /usr/local
 DESTDIR ?=
+VERSION ?= 0.1.0
+PKG_CONFIG ?= pkg-config
+PKG_CONFIG_FILE = pkgconfig/readline_stats.pc.in
+PACKAGE_STAGE = build/package-stage
 LIBRARY_OBJECT = build/count.o
 APP_OBJECT = build/main.o
 HEADERS = include/readline_stats.h
@@ -27,7 +31,7 @@ SANITIZER_LIBRARY_OBJECT = $(SANITIZER_DIR)/count.o
 SANITIZER_LIBRARY = $(SANITIZER_DIR)/libreadline_stats.a
 SANITIZER_TEST_OBJECTS = $(SANITIZER_DIR)/test_count.o $(SANITIZER_DIR)/unity.o
 
-.PHONY: all library run test test-unit test-functional test-integration debug example coverage sanitize install clean check-unity
+.PHONY: all library run test test-unit test-functional test-integration test-package debug example coverage sanitize install clean check-unity
 
 all: $(LIBRARY) $(TARGET)
 
@@ -77,10 +81,12 @@ $(EXAMPLE_TARGET): examples/count_file.c $(LIBRARY) $(HEADERS)
 
 example: $(EXAMPLE_TARGET)
 
-install: $(LIBRARY)
-	install -d $(DESTDIR)$(PREFIX)/lib $(DESTDIR)$(PREFIX)/include
+install: $(LIBRARY) $(PKG_CONFIG_FILE)
+	install -d $(DESTDIR)$(PREFIX)/lib/pkgconfig $(DESTDIR)$(PREFIX)/include
 	install -m 644 $(LIBRARY) $(DESTDIR)$(PREFIX)/lib/libreadline_stats.a
 	install -m 644 $(HEADERS) $(DESTDIR)$(PREFIX)/include/readline_stats.h
+	sed -e 's|@prefix@|$(PREFIX)|g' -e 's|@version@|$(VERSION)|g' \
+		$(PKG_CONFIG_FILE) > $(DESTDIR)$(PREFIX)/lib/pkgconfig/readline_stats.pc
 
 # Construit l'exécutable et les tests avec les compteurs gcov.
 $(COVERAGE_DIR)/main.o: src/main.c $(HEADERS)
@@ -153,8 +159,13 @@ test-functional: $(TARGET) $(FAULT_TARGET)
 	sh tests/functional/test_cli.sh "$(TARGET)"
 	sh tests/functional/test_cli_faults.sh "$(FAULT_TARGET)"
 
-test-integration: $(EXAMPLE_TARGET)
+test-integration: $(EXAMPLE_TARGET) test-package
 	sh tests/integration/test_library_example.sh "$(EXAMPLE_TARGET)"
+
+test-package: $(LIBRARY) $(PKG_CONFIG_FILE)
+	$(MAKE) install DESTDIR="$(abspath $(PACKAGE_STAGE))" PREFIX=/usr
+	sh tests/integration/test_pkg_config.sh "$(abspath $(PACKAGE_STAGE))" \
+		"$(CC)" "$(PKG_CONFIG)" "$(VERSION)"
 
 test: test-unit test-functional test-integration
 
